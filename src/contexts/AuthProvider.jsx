@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const AuthContext = createContext();
 
@@ -15,6 +16,7 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user")) || null
   );
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -62,21 +64,41 @@ const AuthProvider = ({ children }) => {
     );
   }, [token]);
 
+  const register = async (name, email, password, confirmPassword) => {
+    try {
+      setIsLoading(true);
+      await axios.post("/api/auth/register", {
+        name,
+        email,
+        password,
+        confirmPassword,
+      });
+      toast.success(
+        "Account created successfully, please verify your email then login."
+      );
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration failed: ", error);
+      throw new Error(error.response.data.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const login = async (email, password) => {
     try {
+      setIsLoading(true);
       const response = await axios.post("/api/auth/login", { email, password });
       const data = await response.data.data;
-      console.log(data.token);
-      console.log(data.user);
       setUser(data.user);
       setToken(data.token);
-      //console.log(data);
       localStorage.setItem("token", data.token); // Store token in local storage
       localStorage.setItem("user", JSON.stringify(data.user)); // Store user in local storage
       navigate("/"); // Redirect to home after login
     } catch (error) {
       console.error("Login failed: ", error);
       throw new Error(error.response.data.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,7 +110,9 @@ const AuthProvider = ({ children }) => {
     navigate("/login");
   };
   return (
-    <AuthContext.Provider value={{ user, setUser, token, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, setUser, token, login, logout, register, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

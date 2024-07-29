@@ -5,11 +5,9 @@ import EditPostModal from "./EditPostModal";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthProvider";
 import { Link } from "react-router-dom";
-import { usePosts } from "@/contexts/PostsContext";
 
 const Post = ({ post }) => {
   const { user } = useAuth();
-  const { posts, setPosts } = usePosts();
   const [likes, setLikes] = useState(post.likesCount);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -59,11 +57,11 @@ const Post = ({ post }) => {
   };
 
   // Update global state if updatedPost changes
-  useEffect(() => {
-    if (updatedPost) {
-      setPosts(posts.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
-    }
-  }, [updatedPost, posts, setPosts]);
+  // useEffect(() => {
+  //   if (updatedPost) {
+  //     setPosts(posts.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
+  //   }
+  // }, [updatedPost, posts, setPosts]);
 
   // Function to render images with appropriate grid layout
   const renderImages = (images) => {

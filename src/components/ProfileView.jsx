@@ -8,7 +8,7 @@ const ProfileView = ({ name, bio, previewImage, openModal }) => {
   const { user } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);
   const { id } = useParams();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -31,7 +31,6 @@ const ProfileView = ({ name, bio, previewImage, openModal }) => {
       console.error("Error following user:", error);
     }
   };
-
   const handleUnfollow = async () => {
     try {
       await axios.delete(`/api/users/${id}/follow`);
