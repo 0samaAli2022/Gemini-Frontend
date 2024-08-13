@@ -1,14 +1,41 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { FaTimes } from "react-icons/fa";
+import React, { useState } from 'react';
+import axios from 'axios';
+import { FaTimes } from 'react-icons/fa';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import Spinner from './Spinner';
+import { createPost } from '@/api/queries';
 
-const CreatePostModal = ({ onClose, onPostCreated }) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [privacy, setPrivacy] = useState("PUBLIC");
+const CreatePostModal = ({ onClose }) => {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [privacy, setPrivacy] = useState('PUBLIC');
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [error, setError] = useState(null);
+
+  const mutation = useMutation({
+    mutationFn: (formData) => createPost(formData),
+    onSuccess: () => {
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['posts'] });
+        toast.success('Post created successfully');
+        onClose(); // Close the modal on success
+      }, 100);
+    },
+    onError: (error) => {
+      console.error('Error creating post:', error);
+    },
+  });
+
+  const handleSubmit = async () => {
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('privacy', privacy);
+    images.forEach((image) => formData.append('images', image));
+    mutation.mutate(formData);
+  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -28,27 +55,9 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
     setImagePreviews(newPreviews);
   };
 
-  const handleSubmit = async () => {
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("content", content);
-    formData.append("privacy", privacy);
-    images.forEach((image) => formData.append("images", image));
-
-    try {
-      const response = await axios.post("/api/posts", formData);
-      const post = response.data.data.post;
-      onPostCreated(post);
-      onClose();
-    } catch (error) {
-      setError(error.response.data.message);
-      console.error("Error creating post:", error);
-    }
-  };
-
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+      <div className="relative bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <button
           className="absolute top-2 right-2 text-gray-700 hover:text-gray-900"
           onClick={onClose}
@@ -56,7 +65,11 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
           &times;
         </button>
         <h2 className="text-2xl font-bold mb-4">Create Post</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {mutation.isError && (
+          <p className="text-red-500 mb-4">
+            {mutation.error.response.data.message}
+          </p>
+        )}
         <div className="mb-4">
           <input
             type="text"
@@ -143,6 +156,11 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
         >
           Post
         </button>
+        {mutation.isPending && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+            <Spinner loading={mutation.isPending} />
+          </div>
+        )}
       </div>
     </div>
   );

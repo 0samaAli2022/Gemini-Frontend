@@ -1,19 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
-import CommentsModal from "../components/CommentsModal";
-import EditPostModal from "./EditPostModal";
-import axios from "axios";
-import { useAuth } from "../contexts/AuthProvider";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
+import { FaHeart, FaComment, FaEllipsisH, FaEllipsisV } from 'react-icons/fa';
+import CommentsModal from '../components/CommentsModal';
+import EditPostModal from './EditPostModal';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthProvider';
+import { Link } from 'react-router-dom';
 
 const Post = ({ post }) => {
   const { user } = useAuth();
-  const [likes, setLikes] = useState(post.likesCount);
-  const [commentsCount, setCommentsCount] = useState(post.commentsCount);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [updatedPost, setUpdatedPost] = useState(null);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -22,11 +19,9 @@ const Post = ({ post }) => {
   const handleLike = async () => {
     try {
       await axios.post(`/api/posts/${post.id}/like`);
-      setLikes(likes + 1);
     } catch (error) {
-      if (error.response.data.message === "You already liked this post") {
+      if (error.response.data.message === 'You already liked this post') {
         await axios.delete(`/api/posts/${post.id}/like`);
-        setLikes(likes - 1);
       }
     }
   };
@@ -35,34 +30,15 @@ const Post = ({ post }) => {
     setIsEditModalOpen(true);
     setIsMenuOpen(false);
   };
-
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
   };
   const handleCloseCommentModal = () => {
     setIsCommentModalOpen(false);
   };
-  const handleCommentAdded = async () => {
-    setCommentsCount(commentsCount + 1);
-  };
-
   const handleComment = () => {
     setIsCommentModalOpen(true);
   };
-
-  const handlePostUpdated = (updatedPost) => {
-    // Update the local state immediately
-    setUpdatedPost(updatedPost);
-    setIsEditModalOpen(false); // Close the edit modal after update
-  };
-
-  // Update global state if updatedPost changes
-  // useEffect(() => {
-  //   if (updatedPost) {
-  //     setPosts(posts.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
-  //   }
-  // }, [updatedPost, posts, setPosts]);
-
   // Function to render images with appropriate grid layout
   const renderImages = (images) => {
     const imageCount = images.length;
@@ -168,7 +144,9 @@ const Post = ({ post }) => {
         {post.images.length > 0 && renderImages(post.images)}
       </div>
 
-      <h2 className="text-xl font-bold mb-2">{post.title}</h2>
+      <Link to={`/posts/${post.id}`}>
+        <h2 className="text-xl font-bold mb-2">{post.title}</h2>
+      </Link>
       <p className="text-gray-700 mb-4">{post.content}</p>
       <div className="flex justify-start items-center space-x-4">
         <button
@@ -176,29 +154,25 @@ const Post = ({ post }) => {
           className="flex items-center text-gray-700 hover:text-red-500"
         >
           <FaHeart className="mr-1" />
-          {likes}
+          {post.likesCount}
         </button>
         <button
           onClick={handleComment}
           className="flex items-center text-gray-700 hover:text-blue-500"
         >
           <FaComment className="mr-1" />
-          {commentsCount}
+          {post.commentsCount}
         </button>
       </div>
 
-      <CommentsModal
-        postId={post.id}
-        isOpen={isCommentModalOpen}
-        onClose={handleCloseCommentModal}
-        onCommentAdded={handleCommentAdded}
-      />
-      {isEditModalOpen && (
-        <EditPostModal
-          onClose={handleCloseEditModal}
-          onPostUpdated={handlePostUpdated}
-          postToEdit={post}
+      {isCommentModalOpen && (
+        <CommentsModal
+          postId={post.id}
+          onClose={handleCloseCommentModal}
         />
+      )}
+      {isEditModalOpen && (
+        <EditPostModal onClose={handleCloseEditModal} postToEdit={post} />
       )}
     </div>
   );

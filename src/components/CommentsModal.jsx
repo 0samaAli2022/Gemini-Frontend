@@ -1,41 +1,35 @@
-import React, { useState, useEffect } from "react";
-import { FaTimes } from "react-icons/fa";
-import axios from "axios";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
+import { FaTimes } from 'react-icons/fa';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { addComment, fetchComments } from '@/api/queries';
+import Spinner from './Spinner';
+import Comment from './Comment';
 
-const CommentsModal = ({ postId, isOpen, onClose, onCommentAdded }) => {
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
+const CommentsModal = ({ postId, onClose }) => {
+  const queryClient = useQueryClient();
+  const [newComment, setNewComment] = useState('');
+  
+  const { data: comments, isLoading } = useQuery({
+    queryKey: ['comments', postId],
+    queryFn: () => fetchComments(postId),
+  });
 
-  useEffect(() => {
-    if (isOpen) {
-      const fetchComments = async () => {
-        try {
-          const response = await axios.get(`/api/posts/${postId}/comments`);
-          setComments(response.data.data.comments);
-        } catch (error) {
-          console.error("Error fetching comments:", error);
-        }
-      };
+  const addCommentMutation = useMutation({
+    mutationFn: () => addComment(postId, newComment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      setNewComment('');
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
 
-      fetchComments();
-    }
-  }, [isOpen, postId]);
+  if (isLoading) return <Spinner loading={isLoading} />;
 
   const handleAddComment = async () => {
-    try {
-      const response = await axios.post(`/api/posts/${postId}/comments`, {
-        content: newComment,
-      });
-      setComments([...comments, response.data.data.comment]);
-      onCommentAdded();
-      setNewComment("");
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    }
+    addCommentMutation.mutate();
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
@@ -47,30 +41,10 @@ const CommentsModal = ({ postId, isOpen, onClose, onCommentAdded }) => {
           <FaTimes size={20} />
         </button>
         <h2 className="text-2xl font-bold mb-4">Comments</h2>
-        <div className="mb-4 max-h-64 overflow-y-auto">
+        <div className="mb-4 pb-7 max-h-64 overflow-y-auto">
           {comments &&
             comments.map((comment) => (
-              <div key={comment.id} className="mb-4 flex items-start">
-                <Link to={`/profile/${comment.author.id}`}>
-                  <img
-                    src={comment.author.profile.photo}
-                    alt={comment.author.name}
-                    className="w-10 h-10 rounded-full mr-4 cursor-pointer"
-                  />
-                </Link>
-                <div>
-                  <Link
-                    to={`/profile/${comment.author.id}`}
-                    className="text-gray-800 font-bold hover:underline"
-                  >
-                    {comment.author.name}
-                  </Link>
-                  <p className="text-gray-700">{comment.content}</p>
-                  <span className="text-gray-500 text-sm">
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+              <Comment key={comment.id} comment={comment} />
             ))}
         </div>
         <textarea
@@ -85,6 +59,11 @@ const CommentsModal = ({ postId, isOpen, onClose, onCommentAdded }) => {
         >
           Add Comment
         </button>
+        {addCommentMutation.isError && (
+          <p className="text-red-500 mt-2">
+            {addCommentMutation.error.response.data.message}
+          </p>
+        )}
       </div>
     </div>
   );

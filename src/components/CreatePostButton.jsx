@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { FaUserCircle } from "react-icons/fa";
-import CreatePostModal from "./CreatePostModal";
-import { useAuth } from "../contexts/AuthProvider";
+import React, { useState } from 'react';
+import { FaUserCircle } from 'react-icons/fa';
+import CreatePostModal from './CreatePostModal';
+import { useAuth } from '../contexts/AuthProvider';
 
-const CreatePostButton = ({ onPostCreated }) => {
+const CreatePostButton = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -31,7 +31,7 @@ const CreatePostButton = ({ onPostCreated }) => {
         </div>
       </div>
       {isModalOpen && (
-        <CreatePostModal onPostCreated={onPostCreated} onClose={closeModal} />
+        <CreatePostModal onClose={closeModal} />
       )}
     </>
   );

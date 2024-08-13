@@ -1,93 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { FaCamera } from "react-icons/fa";
-import { useAuth } from "../contexts/AuthProvider";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { FaCamera } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthProvider';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import ProfileEditModal from './ProfileEditModal';
+import Spinner from './Spinner';
+import { toast } from 'react-toastify';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchUserProfile, checkFollowStatus } from '@/api/queries';
 
-const ProfileView = ({ name, bio, previewImage, openModal }) => {
-  const { user } = useAuth();
-  const [isFollowing, setIsFollowing] = useState(false);
+const ProfileView = () => {
   const { id } = useParams();
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      try {
-        const response = await axios.get(`/api/users/${id}/isFollowing`);
-        setIsFollowing(response.data.data.isFollowing);
-      } catch (error) {
-        console.error("Error checking follow status:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkFollowStatus();
-  }, [id, user.id]);
+  const { data: userProfile, isLoading } = useQuery({
+    queryKey: ['user', id],
+    queryFn: () => fetchUserProfile(id),
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: isFollowing } = useQuery({
+    queryKey: ['isFollowing', id],
+    queryFn: checkFollowStatus(id),
+    refetchOnWindowFocus: false,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`/api/users/${id}/follow`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isFollowing', id] });
+      toast.success('User followed successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response.data.message);
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.delete(`/api/users/${id}/follow`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isFollowing', id] });
+      toast.success('User unfollowed successfully');
+    },
+    onError: (error) => {
+      toast.error(error.response.data.message);
+    },
+  });
+
   const handleFollow = async () => {
-    try {
-      await axios.post(`/api/users/${id}/follow`);
-      setIsFollowing(true);
-    } catch (error) {
-      console.error("Error following user:", error);
-    }
+    followMutation.mutate();
   };
+
   const handleUnfollow = async () => {
-    try {
-      await axios.delete(`/api/users/${id}/follow`);
-      setIsFollowing(false);
-    } catch (error) {
-      console.error("Error unfollowing user:", error);
-    }
+    unfollowMutation.mutate();
   };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  if (isLoading) return <Spinner loading={isLoading} />;
+
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="flex-shrink-0 w-full md:w-48 md:mr-4 mb-4 md:mb-0 relative">
-        <img
-          className="h-48 w-full object-cover rounded-lg shadow-md"
-          src={previewImage}
-          alt="Profile"
-        />
-        {user.id === id && (
-          <button
-            className="absolute bottom-2 right-2 bg-black hover:bg-gray-700 text-white rounded-full p-2 focus:outline-none"
-            onClick={openModal}
-          >
-            <FaCamera />
-          </button>
-        )}
-      </div>
-      <div className="flex-1">
-        <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">Name</label>
-          <p className="text-gray-700">{name}</p>
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="flex flex-col md:flex-row items-start gap-6">
+        {/* Profile Image Section */}
+        <div className="relative flex-shrink-0 w-full md:w-48">
+          <img
+            className="h-48 w-48 object-cover rounded-full border-4 border-gray-200 shadow-lg"
+            src={userProfile.profile.photo}
+            alt="Profile"
+          />
+          {userProfile.id === user.id && (
+            <button
+              className="absolute bottom-2 right-2 bg-black text-white rounded-full p-2 shadow-md hover:bg-gray-700"
+              onClick={openModal}
+            >
+              <FaCamera />
+            </button>
+          )}
         </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">Bio</label>
-          <p className="text-gray-700">{bio}</p>
+
+        {/* Profile Info Section */}
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold mb-4">{userProfile.name}</h1>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold mb-2">Bio</h2>
+            <p className="text-gray-700">{userProfile.profile.bio}</p>
+          </div>
+          {userProfile.id === user.id ? (
+            <button
+              onClick={openModal}
+              className="px-6 py-2 bg-black text-white rounded-lg shadow-md hover:bg-gray-700"
+            >
+              Edit Profile
+            </button>
+          ) : isFollowing ? (
+            <button
+              onClick={handleUnfollow}
+              className="px-6 py-2 bg-black text-white rounded-lg shadow-md hover:bg-gray-700"
+            >
+              Unfollow
+            </button>
+          ) : (
+            <button
+              onClick={handleFollow}
+              className="px-6 py-2 bg-black text-white rounded-lg shadow-md hover:bg-gray-700"
+            >
+              Follow
+            </button>
+          )}
         </div>
-        {user.id === id ? (
-          <button
-            onClick={openModal}
-            className="px-4 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow-md focus:outline-none"
-          >
-            Edit Profile
-          </button>
-        ) : isFollowing ? (
-          <button
-            onClick={handleUnfollow}
-            className="px-4 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow-md focus:outline-none"
-          >
-            Unfollow
-          </button>
-        ) : (
-          <button
-            onClick={handleFollow}
-            className="px-4 py-2 bg-black hover:bg-gray-700 text-white rounded-lg shadow-md focus:outline-none"
-          >
-            Follow
-          </button>
-        )}
       </div>
+      {isModalOpen && <ProfileEditModal closeModal={closeModal} />}
     </div>
   );
 };

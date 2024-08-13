@@ -1,14 +1,14 @@
-import React, { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthProvider";
-import Spinner from "../components/Spinner";
-import { toast } from "react-toastify";
+import React, { useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthProvider';
+import Spinner from '../components/Spinner';
+import { toast } from 'react-toastify';
 
 const RegisterPage = () => {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { register, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       return;
     }
     setLoading(true);
@@ -165,7 +165,7 @@ const RegisterPage = () => {
                     Create an account
                   </button>
                   <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                    Already have an account?{" "}
+                    Already have an account?{' '}
                     <Link
                       to="/login"
                       className="font-medium text-primary-600 hover:underline dark:text-primary-500"
